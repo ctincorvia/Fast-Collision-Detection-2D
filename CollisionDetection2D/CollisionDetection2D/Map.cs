@@ -15,7 +15,7 @@ namespace CollisionDetection2D
         int maxSpeed;
         bool coarseCollisionActivated;
         bool sleepingObjectsActivated;
-        List<Zone> zones;
+        List<Zone> Zones;
         HashSet<ICollidable> CollisionObjects;
         public Map(int width, int height, bool coarseCollision, bool sleepingObjects, int maxSpeed, int xZones = 1, int yZones = 1)
         {
@@ -24,6 +24,7 @@ namespace CollisionDetection2D
             this.maxSpeed = maxSpeed;
             coarseCollisionActivated = coarseCollision;
             sleepingObjectsActivated = sleepingObjects;
+            CollisionObjects = new HashSet<ICollidable>();
             CreateZones(xZones, yZones);
         }
 
@@ -34,10 +35,11 @@ namespace CollisionDetection2D
             ConcurrentDictionary<ICollidable, HashSet<ICollidable>> CollisionsChecked =
                 new ConcurrentDictionary<ICollidable, HashSet<ICollidable>>();
 
+            TickSleepTimers();
             AssignColliderZones();   
 
             // loop through all of the zones and have each only compare to relevant objects
-            Parallel.ForEach(zones, (zone) =>
+            Parallel.ForEach(Zones, (zone) =>
             {
                 List<ICollidable> CollisionObjectsToCompare = zone.ComputeCollisionObjects();
                 int colliderCount = CollisionObjectsToCompare.Count;
@@ -87,8 +89,10 @@ namespace CollisionDetection2D
         }
 
         //Create all the zones to hold the objects
+        //This is run only once, when the Map instance is created.
         private void CreateZones(int xZones, int yZones)
         {
+            Zones = new List<Zone>();
             int xInterval = width / xZones;
             int yInterval = height / yZones;
             for( int i = 0; i < xZones; i++)
@@ -99,23 +103,42 @@ namespace CollisionDetection2D
                     var maxX = (i + 1) * xInterval;
                     var minY = i * yInterval;
                     var maxY = (i + 1) * yInterval;
-                    zones.Add(new Zone(minX, maxX, minY, maxY));
+                    Zones.Add(new Zone(minX, maxX, minY, maxY));
                 }
+            }
+            //For each zone mark all of the zones adjacent to it
+            for(var zoneIndex = 0; zoneIndex < Zones.Count; ++zoneIndex)
+            {
+                int beginning = zoneIndex - xZones - 1;
+                int end = beginning + 2;
+                for (var i = 0; i < 3; ++i)
+                {
+                    for(var adjacentZoneIndex = beginning; adjacentZoneIndex < end; ++adjacentZoneIndex)
+                    {
+                        if(adjacentZoneIndex > 0 && adjacentZoneIndex < Zones.Count)
+                        {
+                            Zones[zoneIndex].AddAdjacentZone(Zones[adjacentZoneIndex]);
+                        }
+                    }
+                    beginning += xZones;
+                    end = beginning + 2;
+                }     
             }
         }
 
         private void AssignColliderZones()
         {
+            foreach (var zone in Zones)
+                zone.ClearColliders();
             foreach(var collider in CollisionObjects)
-            {
-                FindZone(collider);
-            }
+                AssignZone(collider);
         }
 
         //Check a collider's current zone, assign one if it's not correct
-        private void FindZone(ICollidable collider)
+        private void AssignZone(ICollidable collider)
         {
-            if (collider.zone.WithinBounds(collider))
+            // Asleep colliders are not considered for collision detection
+            if (collider.SleepTime > 0)
                 return;
             AssignNewZone(collider);
         }
@@ -123,12 +146,12 @@ namespace CollisionDetection2D
         //Assign a new zone to a collider
         private void AssignNewZone(ICollidable collider)
         {
-            foreach (var zone in zones)
+            foreach (var zone in Zones)
             {
                 if (zone.WithinBounds(collider))
                 {
                     zone.AddCollider(collider);
-                    collider.zone = zone;
+                    collider.Zone = zone;
                     return;
                 }
             }
@@ -136,9 +159,6 @@ namespace CollisionDetection2D
 
         private bool PairWiseCollisionCheck(ICollidable collider1, ICollidable collider2)
         {
-            // if either collider is asleep there's no need for us to check this collision
-            if (collider1.Asleep() || collider2.Asleep())
-                return false;
 
             // The square root function is computationally expensive.  Using the sqared value instead improves speed.
             int collideDist = collider1.CollisionRadius + collider2.CollisionRadius;
@@ -159,6 +179,15 @@ namespace CollisionDetection2D
             time = Math.Floor(time);
             if (time < collider.SleepTime)
                 collider.SleepTime = Convert.ToInt32(time);
+        }
+
+        private void TickSleepTimers()
+        {
+            foreach(var collider in CollisionObjects)
+            {
+                if (collider.SleepTime > 0)
+                    --collider.SleepTime;
+            }
         }
 
         //The dictionary has some duplicate data to avoid making redundant comparisons.  Flatten everything in to a hash set here.

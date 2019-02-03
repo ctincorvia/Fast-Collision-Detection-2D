@@ -24,6 +24,8 @@ namespace CollisionDetection2D
             this.minY = minY;
             this.maxX = maxX;
             this.maxY = maxY;
+            ZoneObjects = new HashSet<ICollidable>();
+            AdjacentZones = new HashSet<Zone>();
         }
 
         public void AddCollider(ICollidable collider)
@@ -31,9 +33,14 @@ namespace CollisionDetection2D
             ZoneObjects.Add(collider);
         }
 
-        public void RemoveCollider(ICollidable collider)
+        public void ClearColliders()
         {
-            ZoneObjects.Remove(collider);
+            ZoneObjects.Clear();
+        }
+
+        public void AddAdjacentZone(Zone zone)
+        {
+            AdjacentZones.Add(zone);
         }
 
         public bool WithinBounds(ICollidable collider)
