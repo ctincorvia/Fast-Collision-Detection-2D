@@ -13,17 +13,13 @@ namespace CollisionDetection2D
         int width;
         int height;
         int maxSpeed;
-        bool coarseCollisionActivated;
-        bool sleepingObjectsActivated;
         List<Zone> Zones;
         HashSet<ICollidable> CollisionObjects;
-        public Map(int width, int height, bool coarseCollision, bool sleepingObjects, int maxSpeed, int xZones = 1, int yZones = 1)
+        public Map(int width, int height, int maxSpeed, int xZones = 1, int yZones = 1)
         {
             this.width = width;
             this.height = height;
             this.maxSpeed = maxSpeed;
-            coarseCollisionActivated = coarseCollision;
-            sleepingObjectsActivated = sleepingObjects;
             CollisionObjects = new HashSet<ICollidable>();
             CreateZones(xZones, yZones);
         }
@@ -43,22 +39,21 @@ namespace CollisionDetection2D
             {
                 List<ICollidable> CollisionObjectsToCompare = zone.ComputeCollisionObjects();
                 int colliderCount = CollisionObjectsToCompare.Count;
-                for(int i = 0; i < colliderCount; i++)
+                for (int i = 0; i < colliderCount; i++)
                 {
-                    for(int j = i; j < colliderCount; j++)
+                    for (int j = i + 1; j < colliderCount; j++)
                     {
                         ICollidable collider1 = CollisionObjectsToCompare[i];
                         ICollidable collider2 = CollisionObjectsToCompare[j];
                         //if we've already checked this pair of colliders, skip checking them now
-                        if (CollisionsChecked[collider1].Contains(collider2))
+                        if (CollisionsChecked.ContainsKey(collider1) && CollisionsChecked[collider1].Contains(collider2))
                             continue;
                         bool collisionFound = PairWiseCollisionCheck(collider1, collider2);
-                        if(collisionFound)
+                        if (collisionFound)
                             SafeAddToDictionary(CollisionsFound, collider1, collider2);
                         SafeAddToDictionary(CollisionsChecked, collider1, collider2);
                     }
                 }
-
             });
 
             return ConstructSetFromDictionary(CollisionsFound);
@@ -159,8 +154,6 @@ namespace CollisionDetection2D
 
         private bool PairWiseCollisionCheck(ICollidable collider1, ICollidable collider2)
         {
-
-            // The square root function is computationally expensive.  Using the sqared value instead improves speed.
             int collideDist = collider1.CollisionRadius + collider2.CollisionRadius;
             int actualDist = Convert.ToInt32(Math.Sqrt(Math.Pow(collider1.X - collider2.X, 2) + Math.Pow(collider1.Y - collider2.Y, 2)));
 
@@ -197,14 +190,14 @@ namespace CollisionDetection2D
             foreach (var colliderKey in dictionary.Keys)
             {
                 HashSet<ICollidable> colliderSet = dictionary[colliderKey];
-                foreach(var colliderValue in colliderSet)
+                foreach(var colliderValue in colliderSet.ToList())
                 {
                     colliderHash.Add(new Tuple<ICollidable, ICollidable>(colliderKey, colliderValue));
                     if(dictionary.ContainsKey(colliderValue))
                         dictionary[colliderValue].Remove(colliderKey);                 
                 }
             }
-            return null;
+            return colliderHash;
         }
 
         // Maintain a dictionary of all the colliders that have been checked against eachother

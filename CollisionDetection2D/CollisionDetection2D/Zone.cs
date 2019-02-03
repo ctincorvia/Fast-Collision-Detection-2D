@@ -15,7 +15,7 @@ namespace CollisionDetection2D
         // all objects within this zone
         HashSet<ICollidable> ZoneObjects;
         // all objects in this zone and adjacent zones
-        List<ICollidable> CollisionObjects;
+        HashSet<ICollidable> CollisionObjects;
         // Adjacent Zones, relevant because they need to be considered for collisions
         HashSet<Zone> AdjacentZones;
         public Zone(int minX, int maxX, int minY, int maxY)
@@ -62,11 +62,11 @@ namespace CollisionDetection2D
         /// <returns> All objects that need to be considered for collisions </returns>
         public List<ICollidable> ComputeCollisionObjects()
         {
-            CollisionObjects = new List<ICollidable>();
-            CollisionObjects.AddRange(ZoneObjects);
+            CollisionObjects = new HashSet<ICollidable>();
+            CollisionObjects.UnionWith(ZoneObjects);
             foreach (var zone in AdjacentZones)
-                CollisionObjects.AddRange(zone.ZoneObjects);
-            return CollisionObjects;
+                CollisionObjects.UnionWith(zone.ZoneObjects);
+            return CollisionObjects.ToList();
         }
     }
 }

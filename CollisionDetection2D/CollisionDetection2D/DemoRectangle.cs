@@ -53,9 +53,9 @@ namespace CollisionDetection2D
             return yCollides && xCollides;
         }
 
-        bool Between(float min, float max, float point)
+        bool Between(float max, float min, float point)
         {
-            return (point > min) && (point < max);
+            return (point >= min) && (point <= max);
         }
 
     }
