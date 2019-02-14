@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Windows;
@@ -26,35 +27,37 @@ namespace CollisionDetection2D
 
         public HashSet<Tuple<ICollidable, ICollidable>> DetectCollisions()
         {
-            ConcurrentDictionary<ICollidable, HashSet<ICollidable>> CollisionsFound =
-                new ConcurrentDictionary<ICollidable, HashSet<ICollidable>>();
-            ConcurrentDictionary<ICollidable, HashSet<ICollidable>> CollisionsChecked =
-                new ConcurrentDictionary<ICollidable, HashSet<ICollidable>>();
+            ConcurrentDictionary<ICollidable, ConcurrentColliderHash> CollisionsFound =
+                new ConcurrentDictionary<ICollidable, ConcurrentColliderHash>();
 
             TickSleepTimers();
-            AssignColliderZones();   
+            AssignColliderZones();
 
+            var sw = Stopwatch.StartNew();
             // loop through all of the zones and have each only compare to relevant objects
-            Parallel.ForEach(Zones, (zone) =>
+            //foreach(var zone in Zones)
+            Parallel.ForEach(Zones, (zone) =>            
             {
+                var swInner = Stopwatch.StartNew();
                 List<ICollidable> CollisionObjectsToCompare = zone.ComputeCollisionObjects();
+                swInner.Stop();
                 int colliderCount = CollisionObjectsToCompare.Count;
+                var swInner2 = Stopwatch.StartNew();
                 for (int i = 0; i < colliderCount; i++)
                 {
                     for (int j = i + 1; j < colliderCount; j++)
                     {
                         ICollidable collider1 = CollisionObjectsToCompare[i];
                         ICollidable collider2 = CollisionObjectsToCompare[j];
-                        //if we've already checked this pair of colliders, skip checking them now
-                        if (CollisionsChecked.ContainsKey(collider1) && CollisionsChecked[collider1].Contains(collider2))
-                            continue;
                         bool collisionFound = PairWiseCollisionCheck(collider1, collider2);
                         if (collisionFound)
                             SafeAddToDictionary(CollisionsFound, collider1, collider2);
-                        SafeAddToDictionary(CollisionsChecked, collider1, collider2);
                     }
                 }
-            });
+                swInner2.Stop();
+            }
+            );
+            sw.Stop();
 
             return ConstructSetFromDictionary(CollisionsFound);
         }
@@ -96,8 +99,8 @@ namespace CollisionDetection2D
                 {
                     var minX = i * xInterval;
                     var maxX = (i + 1) * xInterval;
-                    var minY = i * yInterval;
-                    var maxY = (i + 1) * yInterval;
+                    var minY = j * yInterval;
+                    var maxY = (j + 1) * yInterval;
                     Zones.Add(new Zone(minX, maxX, minY, maxY));
                 }
             }
@@ -106,19 +109,26 @@ namespace CollisionDetection2D
             {
                 int beginning = zoneIndex - xZones - 1;
                 int end = beginning + 2;
+                //beginning and ending tweaked so edge cases don't get wonky adjacent zones
+                if (zoneIndex % xZones == 0)
+                    beginning += 1;
+                if (zoneIndex % xZones == xZones - 1)
+                    end -= 1;
                 for (var i = 0; i < 3; ++i)
                 {
-                    for(var adjacentZoneIndex = beginning; adjacentZoneIndex < end; ++adjacentZoneIndex)
+                    for(var adjacentZoneIndex = beginning; adjacentZoneIndex <= end; ++adjacentZoneIndex)
                     {
-                        if(adjacentZoneIndex > 0 && adjacentZoneIndex < Zones.Count)
+                        if(adjacentZoneIndex >= 0 && adjacentZoneIndex < Zones.Count)
                         {
-                            Zones[zoneIndex].AddAdjacentZone(Zones[adjacentZoneIndex]);
+                            if (zoneIndex != adjacentZoneIndex)
+                                Zones[zoneIndex].AddAdjacentZone(Zones[adjacentZoneIndex]);
                         }
                     }
                     beginning += xZones;
-                    end = beginning + 2;
+                    end += xZones;
                 }     
             }
+
         }
 
         private void AssignColliderZones()
@@ -155,11 +165,17 @@ namespace CollisionDetection2D
         private bool PairWiseCollisionCheck(ICollidable collider1, ICollidable collider2)
         {
             int collideDist = collider1.CollisionRadius + collider2.CollisionRadius;
-            int actualDist = Convert.ToInt32(Math.Sqrt(Math.Pow(collider1.X - collider2.X, 2) + Math.Pow(collider1.Y - collider2.Y, 2)));
+            int collideDistSquared = collideDist * collideDist;
+            int actualDistSquared = (collider1.X - collider2.X) * (collider1.X - collider2.X)
+                            +(collider1.Y - collider2.Y) * (collider1.Y - collider2.Y);
 
-            if (actualDist <= collideDist)
+            if (actualDistSquared <= collideDistSquared)
+            {
+                collider1.SleepTime = -1;
+                collider2.SleepTime = -1;
                 return collider1.PreciseCollides(collider2);
-
+            }
+            int actualDist = Convert.ToInt32(Math.Ceiling(Math.Sqrt(actualDistSquared)));
             SetSleepTimer(collider1, actualDist - collideDist);
             SetSleepTimer(collider2, actualDist - collideDist);
 
@@ -170,7 +186,9 @@ namespace CollisionDetection2D
         {
             double time = distance / maxSpeed;
             time = Math.Floor(time);
-            if (time < collider.SleepTime)
+            if (time == 0)
+                collider.SleepTime = -1;
+            if (time < collider.SleepTime || collider.SleepTime == 0)
                 collider.SleepTime = Convert.ToInt32(time);
         }
 
@@ -180,17 +198,19 @@ namespace CollisionDetection2D
             {
                 if (collider.SleepTime > 0)
                     --collider.SleepTime;
+                if (collider.SleepTime == -1)
+                    collider.SleepTime = 0;
             }
         }
 
         //The dictionary has some duplicate data to avoid making redundant comparisons.  Flatten everything in to a hash set here.
-        private HashSet<Tuple<ICollidable, ICollidable>> ConstructSetFromDictionary(ConcurrentDictionary<ICollidable, HashSet<ICollidable>> dictionary)
+        private HashSet<Tuple<ICollidable, ICollidable>> ConstructSetFromDictionary(ConcurrentDictionary<ICollidable, ConcurrentColliderHash> dictionary)
         {
             HashSet<Tuple<ICollidable, ICollidable>> colliderHash = new HashSet<Tuple<ICollidable, ICollidable>>();
             foreach (var colliderKey in dictionary.Keys)
             {
-                HashSet<ICollidable> colliderSet = dictionary[colliderKey];
-                foreach(var colliderValue in colliderSet.ToList())
+                ConcurrentColliderHash colliderSet = dictionary[colliderKey];
+                foreach(var colliderValue in colliderSet.Items())
                 {
                     colliderHash.Add(new Tuple<ICollidable, ICollidable>(colliderKey, colliderValue));
                     if(dictionary.ContainsKey(colliderValue))
@@ -202,32 +222,22 @@ namespace CollisionDetection2D
 
         // Maintain a dictionary of all the colliders that have been checked against eachother
         // no matter which collider is used as the key, the other will be in the value 
-        private void SafeAddToDictionary(ConcurrentDictionary<ICollidable, HashSet<ICollidable>> dictionary, ICollidable collider1, ICollidable collider2)
+        private void SafeAddToDictionary(ConcurrentDictionary<ICollidable, ConcurrentColliderHash> dictionary, ICollidable collider1, ICollidable collider2)
         {
             if (dictionary.ContainsKey(collider1))
                 dictionary[collider1].Add(collider2);
             else
             {
-                dictionary[collider1] = new HashSet<ICollidable>();
+                dictionary[collider1] = new ConcurrentColliderHash();
                 dictionary[collider1].Add(collider2);
             }
             if (dictionary.ContainsKey(collider2))
                 dictionary[collider2].Add(collider1);
             else
             {
-                dictionary[collider2] = new HashSet<ICollidable>();
+                dictionary[collider2] = new ConcurrentColliderHash();
                 dictionary[collider2].Add(collider1);
             }
         }
-
-
-
-
-
-
-
-
-
-
     }
 }

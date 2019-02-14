@@ -38,6 +38,8 @@
     <!-- A reference to the entire .NET Framework is automatically included -->
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConcurrentColliderHash.cs" />
+    <Compile Include="SimpleCollisionExample.cs" />
     <Compile Include="DemoRectangle.cs" />
     <Compile Include="Zone.cs" />
     <Compile Include="Map.cs" />

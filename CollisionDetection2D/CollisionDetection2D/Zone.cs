@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace CollisionDetection2D
 {
@@ -13,7 +11,7 @@ namespace CollisionDetection2D
         int minY;
         int maxY;
         // all objects within this zone
-        HashSet<ICollidable> ZoneObjects;
+        public HashSet<ICollidable> ZoneObjects;
         // all objects in this zone and adjacent zones
         HashSet<ICollidable> CollisionObjects;
         // Adjacent Zones, relevant because they need to be considered for collisions
@@ -62,10 +60,12 @@ namespace CollisionDetection2D
         /// <returns> All objects that need to be considered for collisions </returns>
         public List<ICollidable> ComputeCollisionObjects()
         {
+            var sw = Stopwatch.StartNew();
             CollisionObjects = new HashSet<ICollidable>();
             CollisionObjects.UnionWith(ZoneObjects);
             foreach (var zone in AdjacentZones)
                 CollisionObjects.UnionWith(zone.ZoneObjects);
+            sw.Stop();
             return CollisionObjects.ToList();
         }
     }
