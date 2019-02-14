@@ -16,6 +16,7 @@ namespace CollisionDetection2D
             Y = y;
             XSpeed = xSpeed;
             YSpeed = ySpeed;
+            MaxSpeed = 2;
             _size = size;
             // Round the collisionRadius up to the nearest int
             CollisionRadius = Convert.ToInt32(Math.Ceiling(Math.Sqrt(Math.Pow(size / 2, 2) * 2)));
@@ -34,6 +35,8 @@ namespace CollisionDetection2D
         public Zone Zone { get; set; }
 
         public int CollisionRadius { get; set; }
+
+        public int MaxSpeed { get; set; }
 
         public void Tick()
         {

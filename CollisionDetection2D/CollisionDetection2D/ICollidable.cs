@@ -14,6 +14,9 @@ namespace CollisionDetection2D
 
         int SleepTime { get; set; }
 
+        //the maximum speed this object will ever go
+        int MaxSpeed { get; set; }
+
         // The zone this collider is located in
         Zone Zone { get; set; }
 

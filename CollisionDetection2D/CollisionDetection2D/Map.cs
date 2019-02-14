@@ -16,11 +16,10 @@ namespace CollisionDetection2D
         int maxSpeed;
         List<Zone> Zones;
         HashSet<ICollidable> CollisionObjects;
-        public Map(int width, int height, int maxSpeed, int xZones = 1, int yZones = 1)
+        public Map(int width, int height, int xZones = 1, int yZones = 1)
         {
             this.width = width;
             this.height = height;
-            this.maxSpeed = maxSpeed;
             CollisionObjects = new HashSet<ICollidable>();
             CreateZones(xZones, yZones);
         }
@@ -176,15 +175,15 @@ namespace CollisionDetection2D
                 return collider1.PreciseCollides(collider2);
             }
             int actualDist = Convert.ToInt32(Math.Ceiling(Math.Sqrt(actualDistSquared)));
-            SetSleepTimer(collider1, actualDist - collideDist);
-            SetSleepTimer(collider2, actualDist - collideDist);
+            SetSleepTimer(collider1, actualDist - collideDist, collider1.MaxSpeed + collider2.MaxSpeed);
+            SetSleepTimer(collider2, actualDist - collideDist, collider1.MaxSpeed + collider2.MaxSpeed);
 
             return false;
         }
 
-        private void SetSleepTimer(ICollidable collider, int distance)
+        private void SetSleepTimer(ICollidable collider, int distance, int speed)
         {
-            double time = distance / maxSpeed;
+            double time = distance / speed;
             time = Math.Floor(time);
             if (time == 0)
                 collider.SleepTime = -1;

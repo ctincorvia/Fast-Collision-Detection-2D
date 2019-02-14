@@ -13,7 +13,7 @@ namespace UnitTest
         [TestMethod]
         public void SimpleCollide()
         {
-            Map testMap = new Map(100, 100, 10000, 10, 10);
+            Map testMap = new Map(100, 100, 10, 10);
             DemoRectangle demRect1 = new DemoRectangle(5, 5, 0, 0, 10);
             DemoRectangle demRect2 = new DemoRectangle(6, 6, 0, 0, 10);
 
@@ -27,7 +27,7 @@ namespace UnitTest
         [TestMethod]
         public void SimpleNonCollision()
         {
-            Map testMap = new Map(100, 100, 10000, 10, 10);
+            Map testMap = new Map(100, 100, 10, 10);
             DemoRectangle demRect1 = new DemoRectangle(82, 82, 0, 0, 2);
             DemoRectangle demRect2 = new DemoRectangle(87, 87, 0, 0, 2);
 
@@ -41,7 +41,7 @@ namespace UnitTest
         [TestMethod]
         public void LargeMapCollision()
         {
-            Map testMap = new Map(100, 100, 10000, 10, 10);
+            Map testMap = new Map(100, 100, 10, 10);
             DemoRectangle demRect1 = new DemoRectangle(172, 750, 0, 0, 10);
             DemoRectangle demRect2 = new DemoRectangle(186, 760, 0, 0, 10);
 
@@ -55,7 +55,7 @@ namespace UnitTest
         [TestMethod]
         public void CollisionAndNonCollision()
         {
-            Map testMap = new Map(100, 100, 10000, 10, 10);
+            Map testMap = new Map(100, 100, 10, 10);
 
             DemoRectangle demRect1 = new DemoRectangle(30, 30, 0, 0, 10);
             DemoRectangle demRect2 = new DemoRectangle(80, 80, 0, 0, 10);
@@ -74,7 +74,7 @@ namespace UnitTest
         [TestMethod]
         public void MultipleCollisions()
         {
-            Map testMap = new Map(100, 100, 10000, 10, 10);
+            Map testMap = new Map(100, 100, 10, 10);
 
             DemoRectangle demRect1 = new DemoRectangle(30, 30, 0, 0, 10);
             DemoRectangle demRect2 = new DemoRectangle(31, 31, 0, 0, 10);
@@ -93,7 +93,7 @@ namespace UnitTest
         [TestMethod]
         public void OverlappingCollisions()
         {
-            Map testMap = new Map(100, 100, 10000, 10, 10);
+            Map testMap = new Map(100, 100, 10, 10);
 
             DemoRectangle demRect1 = new DemoRectangle(30, 30, 0, 0, 10);
             DemoRectangle demRect2 = new DemoRectangle(31, 31, 0, 0, 10);
@@ -112,7 +112,7 @@ namespace UnitTest
         [TestMethod]
         public void CollisionAcrossMultipleZones()
         {
-            Map testMap = new Map(100, 100, 10000, 10, 10);
+            Map testMap = new Map(100, 100, 10, 10);
 
             DemoRectangle demRect1 = new DemoRectangle(5, 5, 0, 0, 100);
             DemoRectangle demRect2 = new DemoRectangle(15, 15, 0, 0, 100);
@@ -127,7 +127,7 @@ namespace UnitTest
         [TestMethod]
         public void MovingObjectsCollide()
         {
-            Map testMap = new Map(100, 100, 2, 1, 1);
+            Map testMap = new Map(100, 100, 1, 1);
             SimpleCollisionExample simpleCollides = new SimpleCollisionExample();
 
             DemoRectangle demRect1 = new DemoRectangle(25, 25, 1, 0, 5);
@@ -154,7 +154,7 @@ namespace UnitTest
         public void ManyRandomCollisions()
         {
             List<DemoRectangle> rectList = new List<DemoRectangle>();
-            Map testMap = new Map(1000, 1000, 4, 8, 8);
+            Map testMap = new Map(1000, 1000, 8, 8);
             SimpleCollisionExample simpleCollides = new SimpleCollisionExample();
             for(var i = 0; i < 500; ++i)
             {
