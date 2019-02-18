@@ -19,7 +19,7 @@ namespace CollisionDetection2D
             MaxSpeed = 2;
             _size = size;
             // Round the collisionRadius up to the nearest int
-            CollisionRadius = Convert.ToInt32(Math.Ceiling(Math.Sqrt(Math.Pow(size / 2, 2) * 2)));
+            CollisionRadius = Convert.ToInt32(Math.Ceiling(Math.Sqrt(Math.Pow(((double)size) / 2, 2) * 2)));
         }
 
         public int X { get; set; }
@@ -40,8 +40,10 @@ namespace CollisionDetection2D
 
         public void Tick()
         {
-            X += XSpeed;
-            Y += YSpeed;
+            if(X > 0 && X < 1000)
+                X += XSpeed;
+            if( Y > 0 && Y < 1000)
+                Y += YSpeed;
         }
 
         //rote collision detection against another exact square
@@ -49,21 +51,25 @@ namespace CollisionDetection2D
         {
             bool xCollides = false;
             bool yCollides = true;
-
-            var maxX = X + (_size / 2);
-            var minX = X - (_size / 2);
-            var maxY = Y + (_size / 2);
-            var minY = Y - (_size / 2);
-
+            float size = (float)_size;
             var otherCollider = other as DemoRectangle;
+            float otherSize = (float)otherCollider._size;
 
-            var maxOX = otherCollider.X + (otherCollider._size / 2);
-            var minOX = otherCollider.X - (otherCollider._size / 2);
-            var maxOY = otherCollider.Y + (otherCollider._size / 2);
-            var minOY = otherCollider.Y - (otherCollider._size / 2);
+            var maxX = X + (size / 2);
+            var minX = X - (size / 2);
+            var maxY = Y + (size / 2);
+            var minY = Y - (size / 2);           
+
+            var maxOX = otherCollider.X + (otherSize / 2);
+            var minOX = otherCollider.X - (otherSize / 2);
+            var maxOY = otherCollider.Y + (otherSize / 2);
+            var minOY = otherCollider.Y - (otherSize / 2);
 
             xCollides = Between(maxOX, minOX, minX) || Between(maxOX, minOX, maxX);
             yCollides = Between(maxOY, minOY, minY) || Between(maxOY, minOY, maxY);
+
+            xCollides = xCollides || (Between(maxX, minX, minOX) || Between(maxX, minX, maxOX));
+            yCollides = yCollides || (Between(maxY, minY, minOY) || Between(maxY, minY, maxOY)); 
 
             return yCollides && xCollides;
         }

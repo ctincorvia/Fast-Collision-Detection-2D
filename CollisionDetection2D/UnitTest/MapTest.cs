@@ -41,7 +41,7 @@ namespace UnitTest
         [TestMethod]
         public void LargeMapCollision()
         {
-            Map testMap = new Map(100, 100, 10, 10);
+            Map testMap = new Map(1000, 1000, 10, 10);
             DemoRectangle demRect1 = new DemoRectangle(172, 750, 0, 0, 10);
             DemoRectangle demRect2 = new DemoRectangle(186, 760, 0, 0, 10);
 
@@ -154,7 +154,7 @@ namespace UnitTest
         public void ManyRandomCollisions()
         {
             List<DemoRectangle> rectList = new List<DemoRectangle>();
-            Map testMap = new Map(1000, 1000, 8, 8);
+            Map testMap = new Map(1000, 1000, 14, 14);
             SimpleCollisionExample simpleCollides = new SimpleCollisionExample();
             for(var i = 0; i < 500; ++i)
             {
@@ -169,11 +169,9 @@ namespace UnitTest
                 var mapSW1 = new Stopwatch();
                 var simpleSW1 = new Stopwatch();
 
-                var firstPassCollisions = testMap.DetectCollisions().Count();
+                var firstPassCollisions = testMap.DetectCollisions();
 
-                var simpleFirstPassCollisions = simpleCollides.DetectCollisions().Count();
-
-                Assert.IsTrue(firstPassCollisions == simpleFirstPassCollisions);
+                var simpleFirstPassCollisions = simpleCollides.DetectCollisions();
                 foreach (var rect in rectList)
                 {
                     rect.Tick();
@@ -188,8 +186,25 @@ namespace UnitTest
             simpleSW.Start();
             var simpleCollisions = simpleCollides.DetectCollisions();
             simpleSW.Stop();
-            //Assert.IsTrue(simpleSW.ElapsedTicks > mapSW.ElapsedTicks);
-            Assert.IsTrue(simpleCollisions.Count() == mapCollisions.Count());
+            Console.WriteLine(simpleSW.ElapsedTicks + " To " + mapSW.ElapsedTicks + " milliseconds");
+            foreach(var tuple in mapCollisions)
+            {
+                var collisionCount = 0;
+                var item1 = tuple.Item1;
+                var item2 = tuple.Item2;
+                foreach(var tuple2 in simpleCollisions)
+                {
+                    if(item1 == tuple2.Item1 && item2 == tuple2.Item2)
+                    {
+                        collisionCount++;
+                    }
+                    else if (item1 == tuple2.Item2 && item2 == tuple2.Item1)
+                    {
+                        collisionCount++;
+                    }
+                }
+                Assert.IsTrue(collisionCount == 1);
+            }
         }
 
         private static readonly Random rand = new Random();

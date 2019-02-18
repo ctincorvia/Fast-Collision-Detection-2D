@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Windows;
@@ -32,16 +31,11 @@ namespace CollisionDetection2D
             TickSleepTimers();
             AssignColliderZones();
 
-            var sw = Stopwatch.StartNew();
             // loop through all of the zones and have each only compare to relevant objects
-            //foreach(var zone in Zones)
             Parallel.ForEach(Zones, (zone) =>            
             {
-                var swInner = Stopwatch.StartNew();
                 List<ICollidable> CollisionObjectsToCompare = zone.ComputeCollisionObjects();
-                swInner.Stop();
                 int colliderCount = CollisionObjectsToCompare.Count;
-                var swInner2 = Stopwatch.StartNew();
                 for (int i = 0; i < colliderCount; i++)
                 {
                     for (int j = i + 1; j < colliderCount; j++)
@@ -53,10 +47,8 @@ namespace CollisionDetection2D
                             SafeAddToDictionary(CollisionsFound, collider1, collider2);
                     }
                 }
-                swInner2.Stop();
             }
             );
-            sw.Stop();
 
             return ConstructSetFromDictionary(CollisionsFound);
         }
@@ -172,7 +164,7 @@ namespace CollisionDetection2D
             {
                 collider1.SleepTime = -1;
                 collider2.SleepTime = -1;
-                return collider1.PreciseCollides(collider2);
+                return collider1.PreciseCollides(collider2)|| collider2.PreciseCollides(collider1);
             }
             int actualDist = Convert.ToInt32(Math.Ceiling(Math.Sqrt(actualDistSquared)));
             SetSleepTimer(collider1, actualDist - collideDist, collider1.MaxSpeed + collider2.MaxSpeed);
@@ -183,7 +175,7 @@ namespace CollisionDetection2D
 
         private void SetSleepTimer(ICollidable collider, int distance, int speed)
         {
-            double time = distance / speed;
+            double time = (float)distance / (float)speed;
             time = Math.Floor(time);
             if (time == 0)
                 collider.SleepTime = -1;
